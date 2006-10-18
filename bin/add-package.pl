@@ -54,8 +54,11 @@ my $ModName;        # name of the module
 my @ModFiles;       # the .PMs in this package
 {   print "Creating top level dir..." if $Verbose;
 
-    @ModFiles   =  map  { chomp; $_ } 
-                    grep /\.pm$/,
+    ### make sure we get the shortest file, so we dont accidentally get
+    ### a subdir
+    @ModFiles   =  sort { length($a) <=> length($b) }
+                   map  { chomp; $_ } 
+                   grep /\.pm$/,
                     `find $PkgDir/lib -type f`
                         or die "No TopDir detected\n";
 
