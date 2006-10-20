@@ -1,0 +1,2 @@
+# running single tests in bleadperl:
+cd t ; ./perl -MTestInit thing.t
