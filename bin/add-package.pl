@@ -1,3 +1,4 @@
+#!/opt/bin/perl
 use strict;
 use warnings;
 
@@ -352,7 +353,14 @@ sub usage {
     my $me = basename($0);
     return qq[
 
-Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u]
+Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u] [-d]
+
+Options:
+  -r    Path to perl-core repository
+  -v    Run verbosely
+  -d    Create a diff as patch file
+  -p    Path to the package to add. Defaults to cwd()
+  -u    This is an update, not a new package to add
 
     \n];
 
