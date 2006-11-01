@@ -1,4 +1,3 @@
-#!/opt/bin/perl
 use strict;
 use warnings;
 
@@ -55,11 +54,8 @@ my $ModName;        # name of the module
 my @ModFiles;       # the .PMs in this package
 {   print "Creating top level dir..." if $Verbose;
 
-    ### make sure we get the shortest file, so we dont accidentally get
-    ### a subdir
-    @ModFiles   =  sort { length($a) <=> length($b) }
-                   map  { chomp; $_ } 
-                   grep /\.pm$/,
+    @ModFiles   =  map  { chomp; $_ } 
+                    grep /\.pm$/,
                     `find $PkgDir/lib -type f`
                         or die "No TopDir detected\n";
 
@@ -353,14 +349,7 @@ sub usage {
     my $me = basename($0);
     return qq[
 
-Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u] [-d]
-
-Options:
-  -r    Path to perl-core repository
-  -v    Run verbosely
-  -d    Create a diff as patch file
-  -p    Path to the package to add. Defaults to cwd()
-  -u    This is an update, not a new package to add
+Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u]
 
     \n];
 
