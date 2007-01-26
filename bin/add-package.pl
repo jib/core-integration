@@ -5,6 +5,7 @@ use warnings;
 use Cwd;
 use Getopt::Std;
 use File::Basename;
+use FindBin;
 
 my $Opts = {};
 getopts( 'r:p:vud', $Opts );
@@ -76,8 +77,11 @@ my @ModFiles;       # the .PMs in this package
     ### the module name, like Foo::Bar
     ### slice syntax not elegant, but we need to remove the
     ### leading 'lib/' entry
-    $ModName = join '::', @{[split '/', $RelTopDir]}[1,-1];
-
+    ### stupid temp vars! stupid perl! it doesn't do @{..}[0..-1] :(
+    {   my @list = @{[split '/', $RelTopDir]};
+        $ModName = join '::', @list[1 .. $#list];
+    }
+    
     ### the .pm files in this package
     @ModFiles = map { s|^$PkgDirRe||; $_ } @ModFiles
         or die "Could not detect modfiles\n";
@@ -285,7 +289,35 @@ my @NewFiles;
         }
     }         
 }
-    use Data::Dumper;
+
+### binary files must be encoded!
+### XXX use the new 'uupacktool.pl'
+{   my $pack = "$Repo/uupacktool.pl";
+
+    ### pack.pl encodes binary files for us
+    -e $pack or die "Need $pack to encode binary files!";
+
+    for my $aref ( \@ModFiles, \@TestFiles, \@BinFiles ) {
+        for my $file ( @$aref ) {
+            my $full = -e "$Repo/$file"     ? "$Repo/$file" :
+                       -e "$TopDir/$file"   ? "$TopDir/$file" :
+                       die "Can not find $file in $Repo or $TopDir\n";
+                       
+            if( -f $full && -s _ && -B _ ) {
+                print "Binary file $file needs encoding\n" if $Verbose;
+            
+                my $out = $full . '.packed';
+                
+                ### -D to remove the original
+                system("$^X $pack -D -p $full $out") 
+                    and die "Could not encode $full to $out";
+                
+             
+                $file .= '.packed';
+            }                
+        }
+    }        
+}
 
 ### update the manifest
 {   my $file        = $Repo . '/MANIFEST';
@@ -297,14 +329,24 @@ my @NewFiles;
     
     ### fill it with files from our package
     my %pkg_files;
-    $pkg_files{$_} = "$_\t$ModName\n"                   for @ModFiles;
-    $pkg_files{$_} = "$RelTopDir/$_\t$ModName tests\n"  for @TestFiles;
-    $pkg_files{$_} = "$RelTopDir/$_\tthe ". basename($_) ." utility\n"   
-                                                        for @BinFiles;
-    $pkg_files{$_} = "$_\tthe ". do { s/\.PL$//; basename($_) } ." utility\n"                                               
-                                                        for @NewFiles;
+    for ( @ModFiles ) {
+        $pkg_files{$_}              = "$_\t$ModName\n";
+    }
+    
+    for ( @TestFiles ) {
+        $pkg_files{"$RelTopDir/$_"} = "$RelTopDir/$_\t$ModName tests\n"  
+    }    
+        
+    for ( @BinFiles ) {        
+        $pkg_files{"$RelTopDir/$_"} = "$RelTopDir/$_\tthe ". 
+                                            basename($_) ." utility\n";
+    }                                            
 
-
+    for ( @NewFiles ) { 
+        $pkg_files{$_}              = "$_\tthe ". 
+                                        do { s/\.PL$//; basename($_) } .
+                                        " utility\n"                                               
+    }
 
     ### remove all the files that are already in the manifest;
     delete $pkg_files{ [split]->[0] } for @manifest;
