@@ -8,10 +8,11 @@ use File::Basename;
 use FindBin;
 
 my $Opts = {};
-getopts( 'r:p:vud', $Opts );
+getopts( 'r:p:e:vud', $Opts );
 
 my $Cwd         = cwd();
 my $Verbose     = 1;
+my $ExcludeRe   = $Opts->{e} ? qr/$Opts->{e}/ : undef;
 my $Update      = $Opts->{u} || 0;
 my $Debug       = $Opts->{v} || 0;
 my $RunDiff     = $Opts->{d} || 0;
@@ -60,13 +61,14 @@ my @ModFiles;       # the .PMs in this package
     ### a subdir
     @ModFiles   =  sort { length($a) <=> length($b) }
                    map  { chomp; $_ } 
-                   grep /\.pm$/,
+                   grep { $ExcludeRe ? $_ !~ $ExcludeRe : 1 }
+                   grep /\.p(?:m|od)$/,
                     `find $PkgDir/lib -type f`
                         or die "No TopDir detected\n";
 
     $RelTopDir  = $ModFiles[0];
     $RelTopDir  =~ s/^$PkgDirRe//;
-    $RelTopDir  =~ s/\.pm$//;
+    $RelTopDir  =~ s/\.p(m|od)$//;
     $TopDir     = "$Repo/$RelTopDir";
     
     ### create the dir if it's not there yet
@@ -89,15 +91,25 @@ my @ModFiles;       # the .PMs in this package
     print "done\n" if $Verbose;
 }
 
+my $TopDirRe = quotemeta( $TopDir . '/' );
+
 ### copy over t/ and bin/ directories to the $TopDir
 my @TestFiles;
 {   print "Copying t/* files to $TopDir..." if $Verbose;
 
-    -d 't'
-        ? system( "cp -fR $CPV t $TopDir" ) && die "Copy of t/ failed: $?"
-        : warn "No t/ directory found\n";
+   -d 't'
+       ? system( "cp -fR $CPV t $TopDir" ) && die "Copy of t/ failed: $?"
+       : warn "No t/ directory found\n";
 
-    @TestFiles = map { chomp; s|^$PkgDirRe||; $_ } `find $PkgDir/t -type f`
+    @TestFiles =    map { chomp; s|^$TopDirRe||; $_ } 
+                    ### should we get rid of this file?
+                    grep { $ExcludeRe && $_ =~ $ExcludeRe  
+                        ? do {  warn "Removing $_\n"; 
+                                system("rm $_") and die "rm '$_' failed: $?"; 
+                                undef 
+                            } 
+                        : 1    
+                     } `find $TopDir/t -type f`
         or die "Could not detect testfiles\n";
 
     print "done\n" if $Verbose;
@@ -109,14 +121,21 @@ BIN: {
         print "No bin/ directory found\n" if $Verbose;
         last BIN;
     }
-    
     print "Copying bin/* files to $TopDir..." if $Verbose;
-    
-    system( "cp -fR $CPV bin $TopDir" ) && die "Copy of bin/ failed: $?";
- 
-    @BinFiles = map { chomp; s|^$PkgDirRe||; $_ } `find $PkgDir/bin -type f`
-        or die "Could not detect binfiles\n";
 
+    system("cp -fR $CPV bin $TopDir/bin/") && die "Copy of bin/ failed: $?";  
+
+    @BinFiles = map { chomp; s|^$TopDirRe||; $_ } 
+                ### should we get rid of this file?
+                grep { $ExcludeRe && $_ =~ $ExcludeRe  
+                    ? do {  warn "Removing $_\n"; 
+                            system("rm $_") and die "rm '$_' failed: $?"; 
+                            undef 
+                        }         
+                    : 1 
+                 } `find $TopDir/bin -type f`
+        or die "Could not detect binfiles\n";
+ 
     print "done\n" if $Verbose;     
 }
 
@@ -402,11 +421,12 @@ sub usage {
     my $me = basename($0);
     return qq[
 
-Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u] [-d]
+Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u] [-d] [-e REGEX]
 
 Options:
   -r    Path to perl-core repository
   -v    Run verbosely
+  -e    Perl regex matching files that shouldn't be included
   -d    Create a diff as patch file
   -p    Path to the package to add. Defaults to cwd()
   -u    This is an update, not a new package to add
