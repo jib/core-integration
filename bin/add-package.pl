@@ -297,10 +297,15 @@ my @NewFiles;
     ### pack.pl encodes binary files for us
     -e $pack or die "Need $pack to encode binary files!";
 
+    ### chdir, so uupacktool writes relative files properly
+    ### into it's header...
+    my $curdir = cwd();
+    chdir($Repo) or die "Could not chdir to '$Repo': $!";
+
     for my $aref ( \@ModFiles, \@TestFiles, \@BinFiles ) {
         for my $file ( @$aref ) {
-            my $full = -e "$Repo/$file"     ? "$Repo/$file" :
-                       -e "$TopDir/$file"   ? "$TopDir/$file" :
+            my $full = -e $file                 ? $file              :
+                       -e "$RelTopDir/$file"    ? "$RelTopDir/$file" :
                        die "Can not find $file in $Repo or $TopDir\n";
                        
             if( -f $full && -s _ && -B _ ) {
@@ -317,6 +322,8 @@ my @NewFiles;
             }                
         }
     }        
+    
+    chdir($curdir) or die "Could not chdir back to '$curdir': $!";
 }
 
 ### update the manifest
