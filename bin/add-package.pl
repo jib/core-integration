@@ -123,7 +123,7 @@ BIN: {
     }
     print "Copying bin/* files to $TopDir..." if $Verbose;
 
-    system("cp -fR $CPV bin $TopDir/bin/") && die "Copy of bin/ failed: $?";  
+    system("cp -fR $CPV bin/* $TopDir/bin/") && die "Copy of bin/ failed: $?";  
 
     @BinFiles = map { chomp; s|^$TopDirRe||; $_ } 
                 ### should we get rid of this file?
@@ -332,6 +332,13 @@ my @NewFiles;
             
                 my $out = $full . '.packed';
                 
+                ### does the file exist already?
+                ### and doesn't have +w
+                if( -e $out && not -w _ ) {
+                    system("chmod +w $out")
+                        and die "Could not set chmod +w to '$out': $!";
+                }
+                
                 ### -D to remove the original
                 system("$^X $pack -D -p $full $out") 
                     and die "Could not encode $full to $out";
@@ -370,7 +377,7 @@ my @NewFiles;
 
     for ( @NewFiles ) { 
         $pkg_files{$_}              = "$_\tthe ". 
-                                        do { s/\.PL$//; basename($_) } .
+                                        do { m/(.+?)\.PL$/; basename($1) } .
                                         " utility\n"                                               
     }
 
