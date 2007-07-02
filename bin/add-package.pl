@@ -13,7 +13,6 @@ getopts( 'r:p:e:vud', $Opts );
 my $Cwd         = cwd();
 my $Verbose     = 1;
 my $ExcludeRe   = $Opts->{e} ? qr/$Opts->{e}/ : undef;
-my $Update      = $Opts->{u} || 0;
 my $Debug       = $Opts->{v} || 0;
 my $RunDiff     = $Opts->{d} || 0;
 my $PkgDir      = $Opts->{p} || cwd();
@@ -428,7 +427,7 @@ sub usage {
     my $me = basename($0);
     return qq[
 
-Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-u] [-d] [-e REGEX]
+Usage: $me -r PERL_REPO_DIR [-p PACKAGE_DIR] [-v] [-d] [-e REGEX]
 
 Options:
   -r    Path to perl-core repository
@@ -436,7 +435,6 @@ Options:
   -e    Perl regex matching files that shouldn't be included
   -d    Create a diff as patch file
   -p    Path to the package to add. Defaults to cwd()
-  -u    This is an update, not a new package to add
 
     \n];
 
