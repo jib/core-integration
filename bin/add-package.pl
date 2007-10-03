@@ -405,16 +405,19 @@ my @NewFiles;
 
 ### would you like us to show you a diff?
 if( $RunDiff ) {   
-    my $diff = $Repo; $diff =~ s/$$/patch/;
-
-    print "Generating diff..." if $Verbose;
+    my $diff    = $Repo; $diff =~ s/$$/patch/;
 
     ### weird RV ;(
-    my $master = basename( $MasterRepo );
-    my $repo   = basename( $Repo );
-    my $chdir  = dirname( $MasterRepo );
+    my $master  = basename( $MasterRepo );
+    my $repo    = basename( $Repo );
+    my $chdir   = dirname( $MasterRepo );    
+    my $cmd     = "cd $chdir; diff -ruN $master $repo > $diff";
+
+    print "Running: '$cmd'\n";
+
+    print "Generating diff..." if $Verbose;
     
-    system( "cd $chdir; diff -ruN $master $repo > $diff" ); 
+    system( $cmd ); 
         #and die "Could not write diff to '$diff': $?";
     die "Could not write diff to '$diff'" unless -e $diff && -s _;        
         
