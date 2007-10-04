@@ -411,7 +411,10 @@ if( $RunDiff ) {
     my $master  = basename( $MasterRepo );
     my $repo    = basename( $Repo );
     my $chdir   = dirname( $MasterRepo );    
-    my $cmd     = "cd $chdir; diff -ruN $master $repo > $diff";
+    
+    ### the .patch file is added by an rsync from the APC
+    ### but isn't actually in the p4 repo, so exlucde it
+    my $cmd     = "cd $chdir; diff -ruN --exclude=.patch $master $repo > $diff";
 
     print "Running: '$cmd'\n";
 
